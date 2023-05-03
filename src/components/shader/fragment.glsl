@@ -1,10 +1,11 @@
-precision lowp float;
+varying vec2 vUv;
+
 uniform sampler2D texture;
 uniform float bright;
 uniform float contrast;
-varying vec2 vUv;
 
 void main() {
+
     vec4 t = texture2D(texture, vUv);
     t.r = t.r + bright;
     t.g = t.g + bright;

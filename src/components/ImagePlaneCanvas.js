@@ -8,7 +8,7 @@ export default class ImagePlaneCanvas {
     constructor(width = window.innerWidth, height = window.innerHeight, color = 0xaaaaaa, opacity = 0.3) {
         this.scene = new THREE.Scene();
         this.camera = null;
-        this.renderer = new THREE.WebGLRenderer();
+        this.renderer = new THREE.WebGL1Renderer(); //GLSL version
         this.planeMesh = null;
 
         this.bright = 0.001;
@@ -67,14 +67,14 @@ export default class ImagePlaneCanvas {
     async addImagePlane(src, width, height) {
         const planeGeometry = new THREE.PlaneGeometry(width, height); //buffergeometry is integrated in geometry
         const planetexture = await LoadTexture(src);
-        const planeMaterial = new THREE.RawShaderMaterial({
-            vertexShader: vertex,
-            fragmentShader: fragment,
+        const planeMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 texture: { value: planetexture },
                 bright: { value: this.bright },
                 contrast: { value: this.factor },
             },
+            vertexShader: vertex,
+            fragmentShader: fragment,
             side: THREE.DoubleSide,
             transparent: true,
         });
