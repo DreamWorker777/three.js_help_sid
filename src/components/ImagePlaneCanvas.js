@@ -1,4 +1,18 @@
-import * as THREE from 'three';
+// import * as THREE from 'three';
+import {
+    Scene,
+    Camera,
+    Mesh,
+    ShaderMaterial,
+    WebGL1Renderer,
+    PerspectiveCamera,
+    AmbientLight,
+    DirectionalLight,
+    GridHelper,
+    PlaneGeometry,
+    DoubleSide,
+} from 'three';
+
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import vertex from './shader/vertex.glsl';
 import fragment from './shader/fragment.glsl';
@@ -6,9 +20,9 @@ import { LoadTexture } from '../utils/preLoader';
 
 export default class ImagePlaneCanvas {
     constructor(width = window.innerWidth, height = window.innerHeight, color = 0xaaaaaa, opacity = 0.3) {
-        this.scene = new THREE.Scene();
+        this.scene = new Scene();
         this.camera = null;
-        this.renderer = new THREE.WebGL1Renderer(); //GLSL version
+        this.renderer = new WebGL1Renderer(); //GLSL version
         this.planeMesh = null;
 
         this.bright = 0.001;
@@ -25,20 +39,20 @@ export default class ImagePlaneCanvas {
     }
 
     initCamera(pos) {
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.camera.position.set(pos.x, pos.y, pos.z);
     }
 
     initLights() {
-        const ambient = new THREE.AmbientLight(0xffffff, 1);
+        const ambient = new AmbientLight(0xffffff, 1);
         this.scene.add(ambient);
 
-        const p0 = new THREE.DirectionalLight(0xffffff, 0.5);
+        const p0 = new DirectionalLight(0xffffff, 0.5);
         p0.position.set(10, 10, 10);
         p0.lookAt(0, 0, 0);
         this.scene.add(p0);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        const directionalLight = new DirectionalLight(0xffffff, 1);
         directionalLight.position.set(0, 15, 0);
         directionalLight.lookAt(0, 0, 0);
         directionalLight.castShadow = true;
@@ -54,7 +68,7 @@ export default class ImagePlaneCanvas {
     }
 
     addGridHelper() {
-        const grid = new THREE.GridHelper(100, 20, 0x0000ff, 0x808080);
+        const grid = new GridHelper(100, 20, 0x0000ff, 0x808080);
         this.scene.add(grid);
     }
 
@@ -65,9 +79,9 @@ export default class ImagePlaneCanvas {
     }
 
     async addImagePlane(src, width, height) {
-        const planeGeometry = new THREE.PlaneGeometry(width, height); //buffergeometry is integrated in geometry
+        const planeGeometry = new PlaneGeometry(width, height); //buffergeometry is integrated in geometry
         const planetexture = await LoadTexture(src);
-        const planeMaterial = new THREE.ShaderMaterial({
+        const planeMaterial = new ShaderMaterial({
             uniforms: {
                 texture: { value: planetexture },
                 bright: { value: this.bright },
@@ -75,10 +89,10 @@ export default class ImagePlaneCanvas {
             },
             vertexShader: vertex,
             fragmentShader: fragment,
-            side: THREE.DoubleSide,
+            side: DoubleSide,
             transparent: true,
         });
-        this.planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+        this.planeMesh = new Mesh(planeGeometry, planeMaterial);
         this.scene.add(this.planeMesh);
     }
     flip() {
