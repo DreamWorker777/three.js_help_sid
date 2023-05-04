@@ -1,7 +1,5 @@
-// import * as THREE from 'three';
 import {
     Scene,
-    Camera,
     Mesh,
     ShaderMaterial,
     WebGL1Renderer,
