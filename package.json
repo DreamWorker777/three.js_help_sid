@@ -64,6 +64,6 @@
         "dat.gui": "^0.7.9",
         "glslify-loader": "^2.0.0",
         "raw-loader": "^4.0.2",
-        "three": "^0.127.0"
+        "three": "^0.149.0"
     }
 }

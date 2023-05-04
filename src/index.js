@@ -1,4 +1,4 @@
-import { GUI } from 'three/examples/jsm/libs/dat.gui.module';
+import { GUI } from 'dat.gui';
 
 import backgroundSrc from './assets/image.png';
 import ImagePlaneCanvas from './components/ImagePlaneCanvas';
