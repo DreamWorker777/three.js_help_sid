@@ -67,6 +67,9 @@ export default class ImagePlaneCanvas {
     async addImagePlane(src, width, height) {
         const planeGeometry = new THREE.PlaneGeometry(width, height); //buffergeometry is integrated in geometry
         const planetexture = await LoadTexture(src);
+
+        planetexture.encoding = THREE.sRGBEncoding;
+
         const planeMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 texture: { value: planetexture },
