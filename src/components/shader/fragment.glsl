@@ -13,7 +13,16 @@ void main() {
     t.r = contrast * (t.r - 0.5) + 0.5;
     t.g = contrast * (t.g - 0.5) + 0.5;
     t.b = contrast * (t.b - 0.5) + 0.5;
+
     if(t.a > 0.2) {
         gl_FragColor = vec4(t.rgb, 1.0);
+    }
+
+    float outCome = 5.0; // what you would like to log.
+
+    float color = outCome / 255.0;
+
+    if(vUv.y > 0.95) {
+        gl_FragColor = vec4(color, color, color, 1.0);
     }
 }
