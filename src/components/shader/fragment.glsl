@@ -7,6 +7,7 @@ uniform float contrast;
 void main() {
 
     vec4 t = texture2D(texture, vUv);
+
     t.r = t.r + bright;
     t.g = t.g + bright;
     t.b = t.b + bright;
@@ -18,11 +19,12 @@ void main() {
         gl_FragColor = vec4(t.rgb, 1.0);
     }
 
-    float outCome = 5.0; // what you would like to log.
+    // float outCome = 51.0; // what you would like to log.
 
-    float color = outCome / 255.0;
+    // float color = outCome / 255.0;
 
-    if(vUv.y > 0.95) {
-        gl_FragColor = vec4(color, color, color, 1.0);
-    }
+    // if(vUv.y > 0.95) {
+    //     gl_FragColor = vec4(color, color, color, 1.0);
+    // }
+
 }
