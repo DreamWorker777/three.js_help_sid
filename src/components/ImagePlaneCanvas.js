@@ -46,8 +46,7 @@ export default class ImagePlaneCanvas {
         this.composer = null;
         this.bright = 0.001;
         this.contrast = 1.0;
-
-        this.contrast = 1.0;
+        this.opacity = 0.5;
         this.factor = (1.0156 * (this.contrast / 255 + 1.0)) / (1.0 * (1.0156 - this.contrast / 255));
         this.mouse = { x: 0, y: 0 };
         this.read = new Uint8Array(1 * 1 * 4);
@@ -57,8 +56,9 @@ export default class ImagePlaneCanvas {
         this.addGridHelper();
         this.addOrbitController();
         this.loop();
-        this.setEvent();
+        // this.setEvent();
     }
+
     setEvent() {
         document.addEventListener('mousemove', (e) => {
             this.mouse.x = e.clientX;
@@ -127,13 +127,16 @@ export default class ImagePlaneCanvas {
                 texture: { value: planetexture },
                 bright: { value: this.bright },
                 contrast: { value: this.factor },
+                opacity: { value: this.opacity },
             },
             vertexShader: vertex,
             fragmentShader: fragment,
             side: DoubleSide,
             transparent: true,
         });
+
         this.planeMesh = new Mesh(planeGeometry, planeMaterial);
+        console.log(this.planeMesh.material);
         this.scene.add(this.planeMesh);
     }
     flip() {
@@ -147,11 +150,12 @@ export default class ImagePlaneCanvas {
         if (this.planeMesh) {
             this.planeMesh.material.uniforms.bright.value = this.bright;
             this.planeMesh.material.uniforms.contrast.value = this.contrast;
+            this.planeMesh.material.uniforms.opacity.value = this.opacity;
         }
 
         this.renderer.render(this.scene, this.camera);
         this.composer.render();
-
+        console.log(this.opacity);
         // set the (0,0) uv position to mouse position => the (0,0) position is became to (mouse.x, mouse.y)
         // this.camera.setViewOffset(
         //     window.innerWidth,

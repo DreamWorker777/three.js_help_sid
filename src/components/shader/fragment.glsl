@@ -3,6 +3,7 @@ varying vec2 vUv;
 uniform sampler2D texture;
 uniform float bright;
 uniform float contrast;
+uniform float opacity;
 
 void main() {
 
@@ -15,9 +16,9 @@ void main() {
     t.g = contrast * (t.g - 0.5) + 0.5;
     t.b = contrast * (t.b - 0.5) + 0.5;
 
-    if(t.a > 0.2) {
-        gl_FragColor = vec4(t.rgb, 1.0);
-    }
+    if(t.a != 0.0) {
+        gl_FragColor = vec4(t.rgb, opacity);
+    } 
 
     // float outCome = 51.0; // what you would like to log.
 
