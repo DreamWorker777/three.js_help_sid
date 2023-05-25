@@ -15,6 +15,8 @@ import {
     RGBAFormat,
     FloatType,
     Color,
+    MeshBasicMaterial,
+    NearestFilter,
 } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/effectcomposer';
 
@@ -29,7 +31,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 const parameters = {
     minFilter: LinearFilter,
-    magFilter: LinearFilter,
+    magFilter: NearestFilter,
     format: RGBAFormat,
     stencilBuffer: false,
     type: FloatType,
@@ -41,12 +43,12 @@ export default class ImagePlaneCanvas {
         this.scene = new Scene();
         this.camera = null;
         this.renderer = new WebGL1Renderer({ antialias: true }); //GLSL version
-        // this.renderTarget = new WebGLRenderTarget(window.innerWidth, window.innerHeight, parameters); //this is setted to get texel of rendered canvas
+        this.renderTarget = new WebGLRenderTarget(window.innerWidth, window.innerHeight, parameters); //this is setted to get texel of rendered canvas
         this.planeMesh = null;
         this.composer = null;
         this.bright = 0.001;
         this.contrast = 1.0;
-        this.opacity = 0.5;
+        this.opacity = 1;
         this.factor = (1.0156 * (this.contrast / 255 + 1.0)) / (1.0 * (1.0156 - this.contrast / 255));
         this.mouse = { x: 0, y: 0 };
         this.read = new Uint8Array(1 * 1 * 4);
@@ -122,6 +124,39 @@ export default class ImagePlaneCanvas {
         const planeGeometry = new PlaneGeometry(width, height); // buffergeometry is integrated in geometry
         const planetexture = await LoadTexture(src);
         planetexture.encoding = sRGBEncoding;
+
+        // start of the renderertarget
+        // const textureScene = new Scene();
+        // textureScene.background = new Color(0xffffff);
+        // const textureCamera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // textureCamera.position.set(0, 0, 30);
+        // textureCamera.lookAt(0, 0, 0);
+        // const renderTarget = new WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        // const ambient = new AmbientLight(0xffffff, 1);
+        // textureScene.add(ambient);
+
+        // const textureGeometry = new PlaneGeometry(width, height); // buffergeometry is integrated in geometry
+        // const textureMaterial = new ShaderMaterial({
+        //     uniforms: {
+        //         texture: { value: planetexture },
+        //         bright: { value: this.bright },
+        //         contrast: { value: this.factor },
+        //         opacity: { value: this.opacity },
+        //     },
+        //     vertexShader: vertex,
+        //     fragmentShader: fragment,
+        //     side: DoubleSide,
+        //     transparent: true,
+        // });
+        // const textureMesh = new Mesh(textureGeometry, textureMaterial);
+        // textureScene.add(textureMesh);
+        // this.renderer.setRenderTarget(renderTarget);
+        // this.renderer.clear();
+        // this.renderer.setRenderTarget(null);
+        // this.renderer.render(textureScene, textureCamera);
+        // const targetTexture = renderTarget.texture;
+        // end of the renderertarget
+
         const planeMaterial = new ShaderMaterial({
             uniforms: {
                 texture: { value: planetexture },
@@ -136,7 +171,6 @@ export default class ImagePlaneCanvas {
         });
 
         this.planeMesh = new Mesh(planeGeometry, planeMaterial);
-        console.log(this.planeMesh.material);
         this.scene.add(this.planeMesh);
     }
     flip() {
@@ -147,15 +181,31 @@ export default class ImagePlaneCanvas {
     }
     loop() {
         requestAnimationFrame(this.loop.bind(this));
-        if (this.planeMesh) {
-            this.planeMesh.material.uniforms.bright.value = this.bright;
-            this.planeMesh.material.uniforms.contrast.value = this.contrast;
-            this.planeMesh.material.uniforms.opacity.value = this.opacity;
-        }
-
+        // if (this.planeMesh) {
+        //     this.planeMesh.material.uniforms.bright.value = this.bright;
+        //     this.planeMesh.material.uniforms.contrast.value = this.contrast;
+        //     this.planeMesh.material.uniforms.opacity.value = this.opacity;
+        // }
+        this.renderer.setRenderTarget(this.renderTarget);
         this.renderer.render(this.scene, this.camera);
-        this.composer.render();
-        console.log(this.opacity);
+        this.renderer.clear();
+        this.renderer.setRenderTarget(null);
+        const targetTexture = this.renderTarget.texture;
+
+        if (this.planeMesh) {
+            this.planeMesh.material = new ShaderMaterial({
+                uniforms: {
+                    texture: { value: targetTexture },
+                },
+                vertexShader: vertex,
+                fragmentShader: fragment,
+                side: DoubleSide,
+                transparent: true,
+            });
+        }
+        this.renderer.render(this.scene, this.camera);
+        // this.composer.render();
+
         // set the (0,0) uv position to mouse position => the (0,0) position is became to (mouse.x, mouse.y)
         // this.camera.setViewOffset(
         //     window.innerWidth,
@@ -166,8 +216,6 @@ export default class ImagePlaneCanvas {
         //     1
         // );
         // this.renderer.setRenderTarget(this.renderTarget);
-
-        // this.renderer.render(this.scene, this.camera);
 
         // this.renderer.setRenderTarget(null); // clear renderer target (without this  we can't see the rendered canvas in the screen)
         // this.camera.clearViewOffset(); // clear camera
