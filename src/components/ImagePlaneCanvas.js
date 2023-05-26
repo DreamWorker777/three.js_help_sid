@@ -28,6 +28,7 @@ import { LoadTexture } from '../utils/preLoader';
 
 import { RenderPass } from 'three/examples/jsm/postprocessing/renderpass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader.js';
 
 const parameters = {
     minFilter: LinearFilter,
@@ -93,16 +94,16 @@ export default class ImagePlaneCanvas {
         // renderPass.clearColor = new Color(0xffffff);
         this.composer.addPass(renderPass);
 
-        this.effect = new ShaderPass({
-            uniforms: {
-                tDiffuse: { value: null },
-                bright: { value: this.bright },
-                contrast: { value: this.factor },
-            },
-            vertexShader: vertex,
-            fragmentShader: fragment1,
-        });
-
+        // this.effect = new ShaderPass({
+        //     uniforms: {
+        //         tDiffuse: { value: null },
+        //         bright: { value: this.bright },
+        //         contrast: { value: this.factor },
+        //     },
+        //     vertexShader: vertex,
+        //     fragmentShader: fragment1,
+        // });
+        this.effect = new ShaderPass(GammaCorrectionShader);
         this.composer.addPass(this.effect);
     }
 
@@ -146,8 +147,8 @@ export default class ImagePlaneCanvas {
         requestAnimationFrame(this.loop.bind(this));
 
         if (this.planeMesh) {
-            this.effect.uniforms.bright.value = this.bright;
-            this.effect.uniforms.contrast.value = this.contrast;
+            // this.effect.uniforms.bright.value = this.bright;
+            // this.effect.uniforms.contrast.value = this.contrast;
             this.planeMaterial.uniforms.opacity.value = this.opacity;
         }
 
