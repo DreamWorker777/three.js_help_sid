@@ -5,7 +5,7 @@ import fragment from './shader/fragment.glsl';
 import { LoadTexture } from '../utils/preLoader';
 
 export default class ImagePlaneCanvas {
-    constructor(width = window.innerWidth, height = window.innerHeight, color = 0xaaaaaa, opacity = 0.3) {
+    constructor(width = window.innerWidth, height = window.innerHeight, color = 0x000000, opacity = 0.9) {
         this.scene = new THREE.Scene();
         this.camera = null;
         this.renderer = new THREE.WebGL1Renderer(); //GLSL version
@@ -17,7 +17,7 @@ export default class ImagePlaneCanvas {
 
         this.contrast = 1.0;
         this.factor = (1.0156 * (this.contrast / 255 + 1.0)) / (1.0 * (1.0156 - this.contrast / 255));
-        this.initCamera({ x: 5, y: 10, z: 30 });
+        this.initCamera({ x: 5, y: 10, z: 50 });
         this.initLights();
         this.initRenderer(width, height, color, opacity);
         this.addGridHelper();
@@ -54,6 +54,8 @@ export default class ImagePlaneCanvas {
         document.body.appendChild(this.renderer.domElement);
     }
 
+    initComposer() {}
+
     addGridHelper() {
         const grid = new THREE.GridHelper(100, 20, 0x0000ff, 0x808080);
         this.scene.add(grid);
@@ -65,10 +67,9 @@ export default class ImagePlaneCanvas {
         orbitCcontrol.addEventListener('change', this.loop.bind(this));
     }
 
-    async addImagePlane(src, width, height) {
+    async addImagePlane(src, width, height, position) {
         const planeGeometry = new THREE.PlaneGeometry(width, height); //buffergeometry is integrated in geometry
         const planetexture = await LoadTexture(src);
-
         planetexture.encoding = THREE.sRGBEncoding;
 
         const planeMaterial = new THREE.ShaderMaterial({
@@ -84,14 +85,18 @@ export default class ImagePlaneCanvas {
             transparent: true,
         });
         this.planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+        this.planeMesh.position.set(position.x, position.y, position.z);
         this.scene.add(this.planeMesh);
     }
+
     flip() {
         this.planeMesh.rotation.y += Math.PI;
     }
+
     mirror() {
         this.planeMesh.rotation.x += Math.PI;
     }
+
     loop() {
         requestAnimationFrame(this.loop.bind(this));
         if (this.planeMesh) {
