@@ -4,12 +4,30 @@ import vertex from './shader/vertex.glsl';
 import fragment from './shader/fragment.glsl';
 import { LoadTexture } from '../utils/preLoader';
 
+import { EffectComposer } from 'three/examples/jsm/postprocessing/effectcomposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/renderpass';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+const parameters = {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.NearestFilter,
+    format: THREE.RGBAFormat,
+    stencilBuffer: false,
+    type: THREE.FloatType,
+    samples: 1,
+};
+
 export default class ImagePlaneCanvas {
     constructor(width = window.innerWidth, height = window.innerHeight, color = 0x000000, opacity = 0.9) {
         this.scene = new THREE.Scene();
         this.camera = null;
         this.renderer = new THREE.WebGL1Renderer(); //GLSL version
-        this.planeMesh = null;
+        this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, parameters);
+        this.composer = null;
+        this.raycaster = new THREE.Raycaster();
+
+        this.imagePlanes = [];
+        this.selectedPlane = null;
 
         this.bright = 0.001;
         this.contrast = 1.0;
@@ -17,12 +35,32 @@ export default class ImagePlaneCanvas {
 
         this.contrast = 1.0;
         this.factor = (1.0156 * (this.contrast / 255 + 1.0)) / (1.0 * (1.0156 - this.contrast / 255));
-        this.initCamera({ x: 5, y: 10, z: 50 });
+        this.initCamera({ x: 0, y: 20, z: 60 });
         this.initLights();
         this.initRenderer(width, height, color, opacity);
+        this.initComposer();
         this.addGridHelper();
         this.addOrbitController();
+        this.addEvent();
+
         this.loop();
+    }
+
+    addEvent() {
+        document.addEventListener('click', (e) => {
+            const position = new THREE.Vector2();
+            position.x = (e.clientX / window.innerWidth) * 2 - 1;
+            position.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            this.raycaster.setFromCamera(position, this.camera);
+            const intersects = this.raycaster.intersectObjects(this.scene.children);
+            if (intersects.length > 0) {
+                if (intersects[0].object.type === 'Mesh') {
+                    console.log(intersects[0]);
+                    this.selectedPlane = intersects[0].object;
+                }
+            }
+        });
     }
 
     initCamera(pos) {
@@ -54,7 +92,13 @@ export default class ImagePlaneCanvas {
         document.body.appendChild(this.renderer.domElement);
     }
 
-    initComposer() {}
+    initComposer() {
+        this.composer = new EffectComposer(this.renderer, this.renderTarget);
+        const renderPass = new RenderPass(this.scene, this.camera);
+        this.composer.addPass(renderPass);
+        const effect = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.4, 0.85);
+        this.composer.addPass(effect);
+    }
 
     addGridHelper() {
         const grid = new THREE.GridHelper(100, 20, 0x0000ff, 0x808080);
@@ -67,7 +111,7 @@ export default class ImagePlaneCanvas {
         orbitCcontrol.addEventListener('change', this.loop.bind(this));
     }
 
-    async addImagePlane(src, width, height, position) {
+    async addImagePlane(src, width, height, position, bo) {
         const planeGeometry = new THREE.PlaneGeometry(width, height); //buffergeometry is integrated in geometry
         const planetexture = await LoadTexture(src);
         planetexture.encoding = THREE.sRGBEncoding;
@@ -84,9 +128,21 @@ export default class ImagePlaneCanvas {
             side: THREE.DoubleSide,
             transparent: true,
         });
-        this.planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
-        this.planeMesh.position.set(position.x, position.y, position.z);
-        this.scene.add(this.planeMesh);
+        const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+        planeMesh.position.set(position.x, position.y, position.z);
+        planeMesh.layers.set(bo);
+
+        this.scene.add(planeMesh);
+
+        this.imagePlanes.push(planeMesh);
+
+        // const adjustOption = {
+        //     opacity: this.opacity,
+        //     bright: this.bright,
+        //     contrast: this.contrast,
+        // };
+
+        // this.planeMesh.push({ planeMesh, id, adjustOption });
     }
 
     flip() {
@@ -99,11 +155,16 @@ export default class ImagePlaneCanvas {
 
     loop() {
         requestAnimationFrame(this.loop.bind(this));
-        if (this.planeMesh) {
-            this.planeMesh.material.uniforms.bright.value = this.bright;
-            this.planeMesh.material.uniforms.contrast.value = this.contrast;
-            this.planeMesh.material.uniforms.opacity.value = this.opacity;
+
+        if (this.selectedPlane) {
+            this.selectedPlane.material.uniforms.bright.value = this.bright;
+            this.selectedPlane.material.uniforms.contrast.value = this.contrast;
+            this.selectedPlane.material.uniforms.opacity.value = this.opacity;
         }
+
+        this.camera.layers.enable(0);
+        this.camera.layers.set(1);
         this.renderer.render(this.scene, this.camera);
+        this.composer.render();
     }
 }
