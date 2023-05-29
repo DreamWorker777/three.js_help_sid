@@ -9,6 +9,7 @@ scene.addImagePlane(backgroundSrc, 40, 40);
 const gui = new GUI();
 gui.add(scene, 'bright', -1, 1).name('brightness').listen();
 gui.add(scene, 'contrast', -1, 2).name('contrast').listen();
+gui.add(scene, 'opacity', 0, 1).name('opacity').listen();
 gui.add(scene, 'flip');
 gui.add(scene, 'mirror');
 gui.open();

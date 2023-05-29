@@ -13,6 +13,7 @@ export default class ImagePlaneCanvas {
 
         this.bright = 0.001;
         this.contrast = 1.0;
+        this.opacity = 1.0;
 
         this.contrast = 1.0;
         this.factor = (1.0156 * (this.contrast / 255 + 1.0)) / (1.0 * (1.0156 - this.contrast / 255));
@@ -75,6 +76,7 @@ export default class ImagePlaneCanvas {
                 texture: { value: planetexture },
                 bright: { value: this.bright },
                 contrast: { value: this.factor },
+                opacity: { value: this.opacity },
             },
             vertexShader: vertex,
             fragmentShader: fragment,
@@ -92,10 +94,11 @@ export default class ImagePlaneCanvas {
     }
     loop() {
         requestAnimationFrame(this.loop.bind(this));
-        this.renderer.render(this.scene, this.camera);
         if (this.planeMesh) {
             this.planeMesh.material.uniforms.bright.value = this.bright;
             this.planeMesh.material.uniforms.contrast.value = this.contrast;
+            this.planeMesh.material.uniforms.opacity.value = this.opacity;
         }
+        this.renderer.render(this.scene, this.camera);
     }
 }
