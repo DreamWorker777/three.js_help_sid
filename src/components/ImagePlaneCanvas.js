@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import vertex from './shader/vertex.glsl';
 import fragment from './shader/fragment.glsl';
-import fragmentFinalshader from './shader/fragmentFinalshader.glsl';
 import { LoadTexture } from '../utils/preLoader';
 
 import { EffectComposer } from 'three/examples/jsm/postprocessing/effectcomposer';
@@ -25,12 +24,7 @@ export default class ImagePlaneCanvas {
         this.camera = null;
         this.renderer = new THREE.WebGL1Renderer(); //GLSL version
         this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, parameters);
-        this.composer = null;
-        this.finalComposer = null;
         this.raycaster = new THREE.Raycaster();
-        this.bloomLayer = new THREE.Layers();
-        this.bloomLayer.set(1);
-        this.materials = {};
 
         this.imagePlanes = [];
         this.selectedPlane = null;
@@ -44,7 +38,7 @@ export default class ImagePlaneCanvas {
         this.initCamera({ x: 0, y: 20, z: 60 });
         this.initLights();
         this.initRenderer(width, height, color, opacity);
-        this.initComposer();
+
         this.addGridHelper();
         this.addOrbitController();
         this.addEvent();
@@ -62,8 +56,33 @@ export default class ImagePlaneCanvas {
             const intersects = this.raycaster.intersectObjects(this.scene.children);
             if (intersects.length > 0) {
                 if (intersects[0].object.type === 'Mesh') {
-                    console.log(intersects[0]);
-                    this.selectedPlane = intersects[0].object;
+                    const object = intersects[0].object;
+                    console.log(object);
+                    this.imagePlanes.forEach((object, index) => {
+                        object.material.uniforms.select.value = false;
+                    });
+
+                    object.material.uniforms.select.value = true;
+                    this.selectedPlane = object;
+                }
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            const position = new THREE.Vector2();
+            position.x = (e.clientX / window.innerWidth) * 2 - 1;
+            position.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            this.imagePlanes.forEach((object) => {
+                object.material.uniforms.hover.value = false;
+            });
+
+            this.raycaster.setFromCamera(position, this.camera);
+            const intersects = this.raycaster.intersectObjects(this.scene.children);
+            if (intersects.length > 0) {
+                if (intersects[0].object.type === 'Mesh') {
+                    const object = intersects[0].object;
+                    object.material.uniforms.hover.value = true;
                 }
             }
         });
@@ -104,24 +123,6 @@ export default class ImagePlaneCanvas {
         this.composer.addPass(renderPass);
         const effect = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.4, 0.85);
         this.composer.addPass(effect);
-
-        const finalPass = new ShaderPass(
-            new THREE.ShaderMaterial({
-                uniforms: {
-                    baseTexture: { value: null },
-                    bloomTexture: { value: this.composer.renderTarget2.texture },
-                },
-                vertexShader: vertex,
-                fragmentShader: fragmentFinalshader,
-                defines: {},
-            }),
-            'baseTexture'
-        );
-        finalPass.needsSwap = true;
-
-        this.finalComposer = new EffectComposer(this.renderer);
-        this.finalComposer.addPass(renderPass);
-        this.finalComposer.addPass(finalPass);
     }
 
     addGridHelper() {
@@ -146,6 +147,8 @@ export default class ImagePlaneCanvas {
                 bright: { value: this.bright },
                 contrast: { value: this.factor },
                 opacity: { value: this.opacity },
+                hover: { value: false },
+                select: { value: false },
             },
             vertexShader: vertex,
             fragmentShader: fragment,
@@ -154,7 +157,6 @@ export default class ImagePlaneCanvas {
         });
         const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
         planeMesh.position.set(position.x, position.y, position.z);
-        planeMesh.layers.enable(bo);
 
         this.scene.add(planeMesh);
 
@@ -170,25 +172,11 @@ export default class ImagePlaneCanvas {
     }
 
     flip() {
-        this.planeMesh.rotation.y += Math.PI;
+        this.selectedPlane.rotation.y += Math.PI;
     }
 
     mirror() {
-        this.planeMesh.rotation.x += Math.PI;
-    }
-
-    darkenNonBloomed(obj) {
-        if (obj.isMesh && this.bloomLayer.test(obj.layers) === false) {
-            this.materials[obj.uuid] = obj.material;
-            // obj.material = new THREE.MeshBasicMaterial({ color: 'white' });
-        }
-    }
-
-    restoreMaterial(obj) {
-        if (this.materials[obj.uuid]) {
-            obj.material = this.materials[obj.uuid];
-            delete this.materials[obj.uuid];
-        }
+        this.selectedPlane.rotation.x += Math.PI;
     }
 
     loop() {
@@ -199,10 +187,6 @@ export default class ImagePlaneCanvas {
             this.selectedPlane.material.uniforms.contrast.value = this.contrast;
             this.selectedPlane.material.uniforms.opacity.value = this.opacity;
         }
-        this.scene.traverse(this.darkenNonBloomed.bind(this));
-        this.composer.render();
-        this.scene.traverse(this.restoreMaterial.bind(this));
-        this.finalComposer.render();
-        // this.renderer.render(this.scene, this.camera);
+        this.renderer.render(this.scene, this.camera);
     }
 }

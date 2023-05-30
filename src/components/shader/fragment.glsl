@@ -4,6 +4,8 @@ uniform sampler2D texture;
 uniform float bright;
 uniform float contrast;
 uniform float opacity;
+uniform bool hover;
+uniform bool select;
 
 void main() {
 
@@ -21,4 +23,12 @@ void main() {
     if(t.a != 0.0) {
         gl_FragColor = vec4(t.rgb, opacity);
     }
+    vec4 bColor;
+    bColor.r = hover ? 1.0 : 0.0;
+    bColor.g = select ? 1.0 : 0.0;
+
+    if(vUv.x > 0.99 || vUv.x < 0.01 || vUv.y > 0.99 || vUv.y < 0.01) {
+        gl_FragColor = vec4(bColor.rgb, opacity);
+    }
+
 }
