@@ -8,7 +8,7 @@ import { LoadTexture } from '../utils/preLoader';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/effectcomposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/renderpass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/shaderpass';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 const parameters = {
     minFilter: THREE.LinearFilter,
@@ -30,6 +30,7 @@ export default class ImagePlaneCanvas {
         this.raycaster = new THREE.Raycaster();
         this.bloomLayer = new THREE.Layers();
         this.bloomLayer.set(1);
+        this.materials = {};
 
         this.imagePlanes = [];
         this.selectedPlane = null;
@@ -98,7 +99,7 @@ export default class ImagePlaneCanvas {
     }
 
     initComposer() {
-        this.composer = new EffectComposer(this.renderer, this.renderTarget);
+        this.composer = new EffectComposer(this.renderer);
         const renderPass = new RenderPass(this.scene, this.camera);
         this.composer.addPass(renderPass);
         const effect = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.4, 0.85);
@@ -118,8 +119,8 @@ export default class ImagePlaneCanvas {
         );
         finalPass.needsSwap = true;
 
-        this.finalComposer = new EffectComposer(renderer);
-        this.finalComposer.addPass(renderScene);
+        this.finalComposer = new EffectComposer(this.renderer);
+        this.finalComposer.addPass(renderPass);
         this.finalComposer.addPass(finalPass);
     }
 
@@ -176,6 +177,20 @@ export default class ImagePlaneCanvas {
         this.planeMesh.rotation.x += Math.PI;
     }
 
+    darkenNonBloomed(obj) {
+        if (obj.isMesh && this.bloomLayer.test(obj.layers) === false) {
+            this.materials[obj.uuid] = obj.material;
+            // obj.material = new THREE.MeshBasicMaterial({ color: 'white' });
+        }
+    }
+
+    restoreMaterial(obj) {
+        if (this.materials[obj.uuid]) {
+            obj.material = this.materials[obj.uuid];
+            delete this.materials[obj.uuid];
+        }
+    }
+
     loop() {
         requestAnimationFrame(this.loop.bind(this));
 
@@ -184,9 +199,10 @@ export default class ImagePlaneCanvas {
             this.selectedPlane.material.uniforms.contrast.value = this.contrast;
             this.selectedPlane.material.uniforms.opacity.value = this.opacity;
         }
-        this.camera.layers.set(0);
+        this.scene.traverse(this.darkenNonBloomed.bind(this));
         this.composer.render();
-
+        this.scene.traverse(this.restoreMaterial.bind(this));
+        this.finalComposer.render();
         // this.renderer.render(this.scene, this.camera);
     }
 }
