@@ -2,11 +2,13 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import vertex from './shader/vertex.glsl';
 import fragment from './shader/fragment.glsl';
+import fragmentFinalshader from './shader/fragmentFinalshader.glsl';
 import { LoadTexture } from '../utils/preLoader';
 
 import { EffectComposer } from 'three/examples/jsm/postprocessing/effectcomposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/renderpass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/shaderpass';
 
 const parameters = {
     minFilter: THREE.LinearFilter,
@@ -24,7 +26,10 @@ export default class ImagePlaneCanvas {
         this.renderer = new THREE.WebGL1Renderer(); //GLSL version
         this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, parameters);
         this.composer = null;
+        this.finalComposer = null;
         this.raycaster = new THREE.Raycaster();
+        this.bloomLayer = new THREE.Layers();
+        this.bloomLayer.set(1);
 
         this.imagePlanes = [];
         this.selectedPlane = null;
@@ -98,6 +103,24 @@ export default class ImagePlaneCanvas {
         this.composer.addPass(renderPass);
         const effect = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.4, 0.85);
         this.composer.addPass(effect);
+
+        const finalPass = new ShaderPass(
+            new THREE.ShaderMaterial({
+                uniforms: {
+                    baseTexture: { value: null },
+                    bloomTexture: { value: this.composer.renderTarget2.texture },
+                },
+                vertexShader: vertex,
+                fragmentShader: fragmentFinalshader,
+                defines: {},
+            }),
+            'baseTexture'
+        );
+        finalPass.needsSwap = true;
+
+        this.finalComposer = new EffectComposer(renderer);
+        this.finalComposer.addPass(renderScene);
+        this.finalComposer.addPass(finalPass);
     }
 
     addGridHelper() {
@@ -130,7 +153,7 @@ export default class ImagePlaneCanvas {
         });
         const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
         planeMesh.position.set(position.x, position.y, position.z);
-        planeMesh.layers.set(bo);
+        planeMesh.layers.enable(bo);
 
         this.scene.add(planeMesh);
 
@@ -161,10 +184,9 @@ export default class ImagePlaneCanvas {
             this.selectedPlane.material.uniforms.contrast.value = this.contrast;
             this.selectedPlane.material.uniforms.opacity.value = this.opacity;
         }
-
-        this.camera.layers.enable(0);
-        this.camera.layers.set(1);
-        this.renderer.render(this.scene, this.camera);
+        this.camera.layers.set(0);
         this.composer.render();
+
+        // this.renderer.render(this.scene, this.camera);
     }
 }
